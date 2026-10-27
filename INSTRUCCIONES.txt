@@ -1,0 +1,120 @@
+========================================================
+  IMPORTANTE (octubre 2026)
+========================================================
+  El sistema ya está instalado y corregido. El instalador antiguo
+  (instalar.ps1 / instalar.bat) y la carpeta hospedaje_src se movieron a
+  _instalador_antiguo\. NO los ejecutes sobre este proyecto: copian código
+  viejo encima de las correcciones. Puedes borrar esa carpeta.
+
+  Para una instalación nueva en otra PC basta con:
+    composer install
+    copy .env.example .env   (y ajustar la base de datos)
+    php artisan key:generate
+    php artisan migrate --seed
+    php artisan storage:link
+
+  ROLES
+    Recepcionista : reservas, huéspedes, cobros, housekeeping
+    Supervisor    : + habitaciones, tipos, tarifas, reportes, anular facturas
+    Admin         : + usuarios, configuración, backup
+  El registro público está deshabilitado: los usuarios los crea un admin.
+
+  ANTES DE PASAR A PRODUCCIÓN
+    - En .env: APP_ENV=production y APP_DEBUG=false
+    - Crear un usuario de MySQL propio (no usar root) con contraseña
+    - Cambiar las contraseñas "password" de los usuarios de ejemplo
+    - El servidor web debe apuntar a la carpeta public\ (no a la raíz,
+      para que no se pueda descargar .env ni bk_basededatos.sql)
+    - Programar el scheduler (Programador de tareas de Windows, cada minuto):
+        php artisan schedule:run
+    - Configurar el correo (MAIL_*) para la recuperación de contraseña
+
+========================================================
+  SISTEMA DE HOSPEDAJE — INSTRUCCIONES DE INSTALACIÓN
+========================================================
+
+REQUISITOS PREVIOS:
+  - PHP 8.2 o superior (XAMPP, Laragon, WAMP, etc.)
+  - Composer instalado (https://getcomposer.org)
+  - MySQL 5.7+ (incluido en XAMPP/Laragon)
+  - Node.js (opcional, para compilar assets)
+
+PASO 1: Crear la base de datos
+  Abre phpMyAdmin o MySQL y ejecuta:
+  CREATE DATABASE hospedaje_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+PASO 2: Ejecutar el instalador
+  Abre PowerShell en esta carpeta (C:\Webs\PHP\sistema-hospedaje) y ejecuta:
+
+  .\instalar.ps1
+
+  Si PowerShell bloquea la ejecución de scripts, ejecuta primero:
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+  El script realizará automáticamente:
+  ✓ Instalar Laravel 10
+  ✓ Instalar AdminLTE + Laravel DomPDF
+  ✓ Copiar todos los archivos del sistema (hospedaje_src\)
+  ✓ Configurar el .env para hospedaje_db
+  ✓ Ejecutar migraciones y seeders
+
+PASO 3: Iniciar el servidor de desarrollo
+  php artisan serve
+
+PASO 4: Abrir en el navegador
+  http://localhost:8000
+
+CREDENCIALES DE ACCESO:
+  Admin:       admin@hospedaje.com     / password
+  Recepción:   recepcion@hospedaje.com / password
+
+========================================================
+ESTRUCTURA DEL SISTEMA (hospedaje_src/)
+========================================================
+
+📁 app/
+   ├── Models/
+   │   ├── TipoHabitacion.php    — Tipos de habitación con precios base
+   │   ├── Habitacion.php        — Hab. con estado y validación disponibilidad
+   │   ├── Huesped.php           — Huéspedes con softDelete
+   │   ├── Reserva.php           — Reservas con flujo completo
+   │   ├── Factura.php           — Facturas/Boletas con IGV
+   │   ├── Pago.php              — Registro de pagos
+   │   └── CargoAdicional.php    — Cargos de restaurante, minibar, etc.
+   └── Http/Controllers/
+       ├── DashboardController   — Panel con métricas y gráficos
+       ├── HabitacionController  — CRUD + cambio de estado
+       ├── HuespedController     — CRUD + búsqueda AJAX
+       ├── ReservaController     — CRUD + check-in/out + cargos adicionales
+       ├── FacturaController     — Generación + pagos + descarga PDF
+       └── ReporteController     — Ocupación / Ingresos / Huéspedes
+
+📁 database/
+   ├── migrations/               — 7 tablas relacionadas
+   └── seeders/                  — Datos iniciales (tipos, habitaciones, usuarios)
+
+📁 resources/views/
+   ├── layouts/app.blade.php     — Layout AdminLTE con sidebar y navbar
+   ├── dashboard/                — Panel principal con gráficos Chart.js
+   ├── habitaciones/             — CRUD visual en tarjetas por piso
+   ├── huespedes/                — CRUD con historial completo
+   ├── reservas/                 — CRUD + check-in/out + cargos en modal
+   ├── facturas/                 — Boletas/Facturas + registro de pagos + PDF
+   └── reportes/                 — Ocupación diaria, ingresos y huéspedes
+
+📁 routes/web.php                — 30+ rutas organizadas por módulo
+
+========================================================
+FLUJO OPERATIVO PRINCIPAL
+========================================================
+
+1. Registrar huésped → /huespedes/crear
+2. Crear reserva     → /reservas/crear (verifica disponibilidad en tiempo real)
+3. Check-in          → Desde la reserva, clic "Realizar Check-in"
+4. Cargos adicionales→ Agregar restaurante, minibar, etc. durante estancia
+5. Check-out         → Desde la reserva, clic "Realizar Check-out"
+6. Emitir factura    → Automáticamente redirige a generar boleta/factura
+7. Registrar pago    → Efectivo, tarjeta, Yape, etc. con referencia
+8. Descargar PDF     → Comprobante en formato profesional
+
+========================================================

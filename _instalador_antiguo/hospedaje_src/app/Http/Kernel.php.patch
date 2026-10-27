@@ -1,0 +1,4 @@
+// INSTRUCCION: Agrega esta linea dentro de $routeMiddleware en app/Http/Kernel.php
+// Busca: 'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+// Agrega DESPUES:
+'admin' => \App\Http\Middleware\AdminMiddleware::class,
